@@ -7547,6 +7547,11 @@ bool QmlMainWindow::handleShortcut(QKeyEvent *event)
         close();
 #endif
         return true;
+    case Qt::Key_W:
+        // disconnect and return to the main menu; without a session do nothing (never quits the app)
+        if (session)
+            close();
+        return true;
     default:
         return false;
     }
@@ -7579,6 +7584,12 @@ bool QmlMainWindow::event(QEvent *event)
                 session->HandleMouseReleaseEvent(static_cast<QMouseEvent*>(event));
             return true;
         }
+        QGuiApplication::sendEvent(quick_window, event);
+        break;
+    case QEvent::Wheel:
+        // scrolling in the UI (settings pages etc.); while streaming the stream owns the input
+        if (session && !grab_input)
+            break;
         QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::MouseButtonDblClick:

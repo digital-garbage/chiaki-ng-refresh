@@ -6,6 +6,9 @@ Slider {
     property bool firstInFocusChain: false
     property bool lastInFocusChain: false
     property bool sendOutput: false
+    implicitHeight: 28
+    topPadding: 4
+    bottomPadding: 4
 
     Keys.onPressed: (event) => {
         switch (event.key) {

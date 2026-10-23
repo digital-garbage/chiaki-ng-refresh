@@ -12,7 +12,7 @@ Item {
     readonly property bool preferSeparateStreamSettingsWindows: Chiaki.window.runtimeRendererBackend === 1 && Chiaki.session
     property bool useSeparateStreamSettingsWindows: false
     Material.theme: Material.Dark
-    Material.accent: "#00a7ff"
+    Material.accent: "#0a84ff"
 
     function controllerButton(name) {
         let type = "deck";
@@ -259,7 +259,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: false
         initialItem: mainViewComponent
-        font.pixelSize: 20
+        font.pixelSize: 13
 
         replaceEnter: Transition {
             PropertyAnimation {
@@ -444,7 +444,7 @@ Item {
                 id: errorTextLabel
                 Layout.alignment: Qt.AlignCenter
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 20
+                font.pixelSize: 13
             }
         }
 

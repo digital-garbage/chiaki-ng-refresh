@@ -49,83 +49,111 @@ Item {
         }
     }
 
-    ToolBar {
-        id: toolBar
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-        }
-        height: 80
+    // Modal sheet (macOS idiom): dimmed backdrop, centered rounded card, Done/Cancel in the header.
+    Rectangle {
+        anchors.fill: parent
+        color: "#99000000"
+        MouseArea { anchors.fill: parent }  // swallow clicks behind the sheet
+    }
 
-        RowLayout {
-            anchors {
-                fill: parent
-                leftMargin: 10
-                rightMargin: 10
+    Rectangle {
+        id: sheet
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 96, 1000)
+        height: Math.min(parent.height - 96, 720)
+        radius: 14
+        color: "#1e1e1e"
+        border.width: 1
+        border.color: "#2effffff"
+        clip: true
+
+        Item {
+            id: toolBar
+            anchors { top: parent.top; left: parent.left; right: parent.right }
+            height: 56
+
+            Rectangle {
+                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                height: 1
+                color: "#1fffffff"
             }
 
             Button {
-                Layout.fillHeight: true
-                Layout.preferredWidth: 100
+                id: backButton
+                anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: 16 }
+                height: 28
                 flat: true
-                text: "❮"
                 focusPolicy: Qt.NoFocus
-                Material.roundedScale: Material.SmallScale
+                leftPadding: 14
+                rightPadding: 14
+                text: okButton.visible ? qsTr("Cancel") : qsTr("Done")
+                font.pixelSize: 13
+                contentItem: Label {
+                    text: backButton.text
+                    font: backButton.font
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    radius: 7
+                    color: okButton.visible ? (backButton.down ? "#40ffffff" : "#26ffffff") : (backButton.down ? "#0060d0" : "#0a84ff")
+                }
                 onClicked: {
                     dialog.rejected();
                     dialog.close();
                 }
             }
 
-            Item { Layout.fillWidth: true }
+            Column {
+                anchors.centerIn: parent
+                spacing: 1
+                Label {
+                    id: titleLabel
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    font.bold: true
+                    font.pixelSize: 15
+                }
+                Label {
+                    id: headerLabel
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: text !== ""
+                    color: "#99ffffff"
+                    font.pixelSize: 11
+                }
+            }
 
             Button {
                 id: okButton
-                Layout.fillHeight: true
+                anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: 16 }
+                height: 28
                 flat: true
-                padding: 30
-                font.pixelSize: 25
                 focusPolicy: Qt.NoFocus
-                Material.roundedScale: Material.SmallScale
+                leftPadding: 14
+                rightPadding: 14
+                font.pixelSize: 13
+                contentItem: Label {
+                    text: okButton.text
+                    font: okButton.font
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    opacity: okButton.enabled ? 1.0 : 0.5
+                }
+                background: Rectangle {
+                    radius: 7
+                    color: okButton.enabled ? (okButton.down ? "#0060d0" : "#0a84ff") : "#26ffffff"
+                }
                 onClicked: dialog.accepted()
-                icon.source: "qrc:/icons/options.svg";
-                icon.width: 50
-                icon.height: 50
             }
         }
 
-        Label {
-            id: titleLabel
-            anchors.centerIn: parent
-            horizontalAlignment: Qt.AlignHCenter
-            verticalAlignment: Qt.AlignVCenter
-            font.bold: true
-            font.pixelSize: 26
-        }
-
-        Label {
-            id: headerLabel
+        Item {
+            id: contentItem
             anchors {
-                top: parent.top
-                left: titleLabel.right
+                top: toolBar.bottom
+                left: parent.left
                 right: parent.right
-                verticalCenter: parent.verticalCenter
+                bottom: parent.bottom
             }
-            horizontalAlignment: Qt.AlignHCenter
-            verticalAlignment: Qt.AlignVCenter
-            font.bold: true
-            font.pixelSize: 14
-        }
-    }
-
-    Item {
-        id: contentItem
-        anchors {
-            top: toolBar.bottom
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
         }
     }
 }

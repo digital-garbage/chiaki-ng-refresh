@@ -95,9 +95,9 @@ Window {
             ToolButton {
                 id: closeButton
                 Layout.rightMargin: 20
-                text: "×"
+                text: Chiaki.session ? qsTr("Disconnect") : "×"
                 padding: 10
-                font.pixelSize: 50
+                font.pixelSize: Chiaki.session ? 22 : 50
                 down: activeFocus
                 activeFocusOnTab: true
                 onClicked: {

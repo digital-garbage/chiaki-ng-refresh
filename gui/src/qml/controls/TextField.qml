@@ -3,10 +3,23 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 
 TextField {
+    id: control
     property bool firstInFocusChain: false
     property bool lastInFocusChain: false
     property bool sendOutput: false
     readOnly: true
+
+    implicitHeight: 30
+    topPadding: 4
+    bottomPadding: 4
+    leftPadding: 10
+    rightPadding: 10
+    background: Rectangle {
+        radius: 7
+        color: control.readOnly ? "#26ffffff" : "#33ffffff"
+        border.width: control.activeFocus ? 2 : 0
+        border.color: "#0a84ff"
+    }
 
     onActiveFocusChanged: {
         if (!activeFocus)
