@@ -1,15 +1,46 @@
 
 ![chiaki-ng Logo](gui/res/chiaking-logo.svg)
 
-# [chiaki-ng](https://streetpea.github.io/chiaki-ng/)
+# chiaki-ng-refresh
 
-An open source PlayStation remote play project serving as the next-generation of Chiaki with improvements and ongoing support now that the original Chiaki project is in maintenance mode only. [Click here to see the accompanying site for documentation, updates and more](https://streetpea.github.io/chiaki-ng/).
+A fork of [chiaki-ng](https://github.com/streetpea/chiaki-ng) (itself a fork of [Chiaki](https://git.sr.ht/~thestr4ng3r/chiaki) by Florian Markl) for PlayStation 4 and PlayStation 5 Remote Play, with a macOS-native look and feel. Streaming, registration and controller support are unchanged from upstream; this fork only changes the interface and a few interaction details.
 
-## Discord
-[chiaki-ng community Discord](https://discord.gg/tAMbRuwXDH)
+## What changed
+
+**Main window**
+- Sidebar with your consoles and a detail pane with Connect and Wake Up buttons, grouped sections for console info, now playing and management.
+- Dark macOS-style palette, 13 px base font, rounded translucent buttons.
+
+**Settings**
+- Opens as a modal sheet over the main window instead of a full-screen page.
+- Sidebar navigation (General, Video, Stream, Audio/Wifi, Consoles, Keys, Controllers, Remote, Config), content in rounded cards.
+- Every row has its label above the control; dropdowns share one width.
+- macOS-style pop-up dropdowns, 18 px checkboxes and radio buttons, thinner scrollbars.
+- Mouse-wheel and trackpad scrolling now works (the window was not forwarding wheel events to the UI).
+- Removed confusing hints such as "(Default)" in dropdown entries and the extra "(15 Mbps)" next to the bitrate.
+- Stream settings regrouped into one column (Local, Remote).
+
+**Streaming**
+- The in-stream menu now has a labeled Disconnect button instead of a bare "x".
+- Cmd+W disconnects and returns to the main menu without quitting the app.
+
+**Other**
+- Redesigned About dialog.
+
+The changes are mostly in `gui/src/qml` (`MainView.qml`, `DialogView.qml`, `SettingsDialog.qml`, `StreamMenuWindow.qml`, `controls/*`) plus two small edits in `gui/src/qmlmainwindow.cpp`.
+
+## Building on macOS
+
+Follow the [upstream documentation](https://streetpea.github.io/chiaki-ng/) for dependencies and the CMake build. Notes from running it on macOS:
+- Xbox controllers work through SDL (tested with an Xbox One Elite Series 2).
+- Registration and streaming need the Local Network permission. Use a code-signed app bundle (ad-hoc signing with `gui/entitlements.xml` is enough), include `NSLocalNetworkUsageDescription` in its Info.plist, and start it with `open`, not from a terminal.
+
+## License
+
+AGPL-3.0 with the OpenSSL exception, the same as upstream (see `COPYING` and `LICENSES/`). Original copyright notices of chiaki-ng and Chiaki are kept.
 
 ## Disclaimer
-This project is not endorsed or certified by Sony Interactive Entertainment LLC.
+This project is not endorsed or certified by Sony Interactive Entertainment LLC. It is not affiliated with the upstream chiaki-ng project.
 
-Chiaki is a Free and Open Source Software Client for PlayStation 4 and PlayStation 5 Remote Play
-for Linux, FreeBSD, OpenBSD, Android, macOS, Windows, Nintendo Switch and potentially even more platforms.
+## Upstream
+[chiaki-ng documentation](https://streetpea.github.io/chiaki-ng/) | [chiaki-ng community Discord](https://discord.gg/tAMbRuwXDH)
