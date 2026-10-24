@@ -2811,6 +2811,32 @@ Label {
                             });
                         }
 
+                        Label {
+                            Layout.topMargin: 16
+                            text: qsTr("Elite Paddles")
+                            font.bold: true
+                            font.pixelSize: 15
+                        }
+                        Repeater {
+                            model: 4
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+                                Label {
+                                    Layout.topMargin: 6
+                                    text: qsTr("Paddle %1:").arg(index + 1)
+                                    color: "#99ffffff"
+                                    font.pixelSize: 12
+                                }
+                                C.ComboBox {
+                                    Layout.preferredWidth: 360
+                                    model: [qsTr("Not Used"), qsTr("Cross"), qsTr("Moon"), qsTr("Box"), qsTr("Pyramid"), qsTr("Dpad Left"), qsTr("Dpad Right"), qsTr("Dpad Up"), qsTr("Dpad Down"), qsTr("L1"), qsTr("R1"), qsTr("L3"), qsTr("R3"), qsTr("Options"), qsTr("Share"), qsTr("Touchpad"), qsTr("PS")]
+                                    currentIndex: Chiaki.settings.paddleButton(index)
+                                    onActivated: i => Chiaki.settings.setPaddleButton(index, i)
+                                }
+                            }
+                        }
+
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 10

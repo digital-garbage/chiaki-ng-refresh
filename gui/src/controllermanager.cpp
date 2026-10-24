@@ -544,13 +544,25 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 			micbutton_push = true;
 			break;
 		case SDL_CONTROLLER_BUTTON_PADDLE1:
-			return false;
+			if(!manager->paddle_buttons[0])
+				return false;
+			ps_btn = static_cast<ChiakiControllerButton>(manager->paddle_buttons[0]);
+			break;
 		case SDL_CONTROLLER_BUTTON_PADDLE2:
-			return false;
+			if(!manager->paddle_buttons[1])
+				return false;
+			ps_btn = static_cast<ChiakiControllerButton>(manager->paddle_buttons[1]);
+			break;
 		case SDL_CONTROLLER_BUTTON_PADDLE3:
-			return false;
+			if(!manager->paddle_buttons[2])
+				return false;
+			ps_btn = static_cast<ChiakiControllerButton>(manager->paddle_buttons[2]);
+			break;
 		case SDL_CONTROLLER_BUTTON_PADDLE4:
-			return false;
+			if(!manager->paddle_buttons[3])
+				return false;
+			ps_btn = static_cast<ChiakiControllerButton>(manager->paddle_buttons[3]);
+			break;
 #if SDL_VERSION_ATLEAST(2, 0, 14)
 		case SDL_CONTROLLER_BUTTON_TOUCHPAD:
 			ps_btn = CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;

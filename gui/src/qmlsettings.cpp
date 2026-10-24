@@ -1,5 +1,6 @@
 #include "qmlsettings.h"
 #include "sessionlog.h"
+#include "controllermanager.h"
 
 #include <QSet>
 #include <QKeySequence>
@@ -62,6 +63,9 @@ QmlSettings::QmlSettings(Settings *settings, QObject *parent)
 {
     if (settings->GetLogVerbose())
         QLoggingCategory::setFilterRules(QStringLiteral("chiaki.gui.debug=true"));
+
+    for (int i = 0; i < 4; i++)
+        ControllerManager::GetInstance()->SetPaddleButton(i, settings->GetPaddleButton(i));
 
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
     connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
@@ -2097,4 +2101,15 @@ void QmlSettings::importPlaceboSettings()
         return;
     settings->ImportPlaceboSettings(std::move(fileName));;
     refreshAllPlaceboKeys();
+}
+
+int QmlSettings::paddleButton(int paddle) const
+{
+    return settings->GetPaddleButton(paddle);
+}
+
+void QmlSettings::setPaddleButton(int paddle, int index)
+{
+    settings->SetPaddleButton(paddle, index);
+    ControllerManager::GetInstance()->SetPaddleButton(paddle, index);
 }

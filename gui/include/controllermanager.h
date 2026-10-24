@@ -37,6 +37,7 @@ class ControllerManager : public QObject
 		bool is_app_active;
 		bool moved;
 		uint8_t dualsense_intensity;
+		uint paddle_buttons[4] = {0, 0, 0, 0}; // ChiakiControllerButton mask per Elite paddle, 0 = unused
 
 		void ControllerClosed(Controller *controller);
 		void CheckMoved();
@@ -57,6 +58,8 @@ class ControllerManager : public QObject
 		void SetAllowJoystickBackgroundEvents(bool enabled);
 		void SetIsAppActive(bool active);
 		void SetDualSenseIntensity(uint8_t intensity) { dualsense_intensity = intensity; };
+		// index: 0 = unused, otherwise the n-th ChiakiControllerButton (same order as the dpad shortcut dropdowns)
+		void SetPaddleButton(int paddle, uint index) { if(paddle >= 0 && paddle < 4) paddle_buttons[paddle] = index ? (1u << (index - 1)) : 0; }
 		uint8_t GetDualSenseIntensity() { return dualsense_intensity; };
 		void creatingControllerMapping(bool creating_controller_mapping);
 		QSet<int> GetAvailableControllers();

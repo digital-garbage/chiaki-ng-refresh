@@ -445,6 +445,9 @@ class Settings : public QObject
 		uint16_t GetDpadTouchIncrement() const;
 		void SetDpadTouchIncrement(uint16_t increment);
 
+		uint GetPaddleButton(int paddle) const;
+		void SetPaddleButton(int paddle, uint index);
+
 		uint GetDpadTouchShortcut1() const;
 		void SetDpadTouchShortcut1(uint button);
 

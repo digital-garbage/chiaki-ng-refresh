@@ -22,6 +22,10 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <QApplication>
 #include <QtTypes>
 
+#ifdef Q_OS_MACOS
+#include <IOKit/hidsystem/IOHIDLib.h>
+#endif
+
 #ifdef CHIAKI_ENABLE_CLI
 #include <chiaki-cli.h>
 #endif
@@ -317,6 +321,11 @@ int real_main(int argc, char *argv[])
 
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit)
 {
+#ifdef Q_OS_MACOS
+	// Direct HID access (needed for Xbox Elite paddles) requires Input Monitoring; ask once so macOS lists this build
+	if(IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) != kIOHIDAccessTypeGranted)
+		IOHIDRequestAccess(kIOHIDRequestTypeListenEvent);
+#endif
 	QmlMainWindow main_window(settings, exit_app_on_stream_exit);
 	main_window.show();
 	return app.exec();

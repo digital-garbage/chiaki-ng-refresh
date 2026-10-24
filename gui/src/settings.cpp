@@ -1032,6 +1032,14 @@ void Settings::SetDpadTouchIncrement(uint16_t increment)
 	settings.setValue("settings/dpad_touch_increment", increment);
 }
 
+uint Settings::GetPaddleButton(int paddle) const {
+	// paddle 1 defaults to Touchpad (index 15), Xbox pads have no touchpad button
+	return settings.value(QString("settings/paddle%1_button").arg(paddle + 1), paddle == 0 ? 15 : 0).toUInt();
+}
+void Settings::SetPaddleButton(int paddle, uint index) {
+	settings.setValue(QString("settings/paddle%1_button").arg(paddle + 1), index);
+}
+
 uint Settings::GetDpadTouchShortcut1() const {
 	return settings.value("settings/dpad_touch_shortcut1", 9).toUInt();
 }
