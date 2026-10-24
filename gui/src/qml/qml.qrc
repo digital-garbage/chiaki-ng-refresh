@@ -5,6 +5,7 @@
     <file>MainView.qml</file>
     <file>StreamView.qml</file>
     <file>StreamMenuWindow.qml</file>
+    <file>StreamMenuContent.qml</file>
     <file>ControllerCard.qml</file>
     <file>ControllerPicture.qml</file>
     <file>ControllerTestDialog.qml</file>
