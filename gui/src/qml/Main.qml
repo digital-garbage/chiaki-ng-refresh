@@ -261,6 +261,20 @@ Item {
         initialItem: mainViewComponent
         font.pixelSize: 13
 
+        // dialogs fade in over the main view (modal sheet), the page underneath stays put
+        pushEnter: Transition {
+            NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: 160; easing.type: Easing.OutCubic }
+        }
+        pushExit: Transition {
+            PauseAnimation { duration: 160 }
+        }
+        popEnter: Transition {
+            PauseAnimation { duration: 160 }
+        }
+        popExit: Transition {
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: 160; easing.type: Easing.InCubic }
+        }
+
         replaceEnter: Transition {
             PropertyAnimation {
                 property: "opacity"

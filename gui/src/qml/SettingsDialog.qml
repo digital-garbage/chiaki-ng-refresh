@@ -2745,6 +2745,7 @@ Label {
                 // Controllers
                 Flickable {
                     id: controllersFlick
+                    property var currentPad: ControllerInfo.controllers[ControllerInfo.current] || null
                     anchors {
                         fill: parent
                         topMargin: 20
@@ -2793,6 +2794,10 @@ Label {
                             horizontalCenter: parent.horizontalCenter
                         }
                         spacing: 10
+                        ControllerCard {
+                            Layout.fillWidth: true
+                            Layout.bottomMargin: 8
+                        }
                         C.Button {
                             Layout.alignment: Qt.AlignLeft
                             id: controllerMappingChange
@@ -2813,12 +2818,30 @@ Label {
 
                         Label {
                             Layout.topMargin: 16
+                            visible: controllersFlick.currentPad !== null && controllersFlick.currentPad.elite
                             text: qsTr("Elite Paddles")
                             font.bold: true
                             font.pixelSize: 15
                         }
+                        Label {
+                            Layout.topMargin: 16
+                            Layout.fillWidth: true
+                            visible: controllersFlick.currentPad !== null && !controllersFlick.currentPad.elite && controllersFlick.currentPad.hasPaddles
+                            wrapMode: Text.Wrap
+                            text: qsTr("This controller has extra buttons, but remapping them is only available for Xbox Elite controllers for now.")
+                            color: "#99ffffff"
+                            font.pixelSize: 12
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            visible: controllersFlick.currentPad !== null && controllersFlick.currentPad.elite && !controllersFlick.currentPad.hasPaddles
+                            wrapMode: Text.Wrap
+                            text: qsTr("The paddles are not reported by this connection. Allow Input Monitoring for chiaki-ng in System Settings and restart the app.")
+                            color: "#99ffffff"
+                            font.pixelSize: 12
+                        }
                         Repeater {
-                            model: 4
+                            model: controllersFlick.currentPad !== null && controllersFlick.currentPad.elite ? 4 : 0
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 6

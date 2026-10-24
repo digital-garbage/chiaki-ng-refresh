@@ -3,6 +3,7 @@
 #include "qmlmainwindow.h"
 #include "streamsession.h"
 #include "controllermanager.h"
+#include "controllerinfo.h"
 #include "psnaccountid.h"
 #include "psntoken.h"
 #include "systemdinhibit.h"
@@ -290,6 +291,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
 
     const char *uri = "org.streetpea.chiaking";
     qmlRegisterSingletonInstance(uri, 1, 0, "Chiaki", this);
+    qmlRegisterSingletonInstance(uri, 1, 0, "ControllerInfo", new ControllerInfo(this));
     qmlRegisterUncreatableType<QmlMainWindow>(uri, 1, 0, "ChiakiWindow", {});
     qmlRegisterUncreatableType<QmlSettings>(uri, 1, 0, "ChiakiSettings", {});
     qmlRegisterUncreatableType<StreamSession>(uri, 1, 0, "ChiakiSession", {});

@@ -52,7 +52,7 @@ Item {
     // Modal sheet (macOS idiom): dimmed backdrop, centered rounded card, Done/Cancel in the header.
     Rectangle {
         anchors.fill: parent
-        color: "#99000000"
+        color: "#66000000"
         MouseArea { anchors.fill: parent }  // swallow clicks behind the sheet
     }
 
