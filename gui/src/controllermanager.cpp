@@ -543,20 +543,21 @@ inline bool Controller::HandleButtonEvent(SDL_ControllerButtonEvent event) {
 		case SDL_CONTROLLER_BUTTON_MISC1:
 			micbutton_push = true;
 			break;
+		// SDL paddle order differs from the Xbox P1..P4 labels (SDL2: PADDLE1=P1, PADDLE2=P3, PADDLE3=P2, PADDLE4=P4), slots follow the labels
 		case SDL_CONTROLLER_BUTTON_PADDLE1:
 			if(!manager->paddle_buttons[0])
 				return false;
 			ps_btn = static_cast<ChiakiControllerButton>(manager->paddle_buttons[0]);
 			break;
 		case SDL_CONTROLLER_BUTTON_PADDLE2:
-			if(!manager->paddle_buttons[1])
-				return false;
-			ps_btn = static_cast<ChiakiControllerButton>(manager->paddle_buttons[1]);
-			break;
-		case SDL_CONTROLLER_BUTTON_PADDLE3:
 			if(!manager->paddle_buttons[2])
 				return false;
 			ps_btn = static_cast<ChiakiControllerButton>(manager->paddle_buttons[2]);
+			break;
+		case SDL_CONTROLLER_BUTTON_PADDLE3:
+			if(!manager->paddle_buttons[1])
+				return false;
+			ps_btn = static_cast<ChiakiControllerButton>(manager->paddle_buttons[1]);
 			break;
 		case SDL_CONTROLLER_BUTTON_PADDLE4:
 			if(!manager->paddle_buttons[3])

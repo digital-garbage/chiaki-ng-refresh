@@ -1,4 +1,5 @@
 #include "qmlcontroller.h"
+#include "controllermanager.h"
 
 #include <QTimer>
 #include <QKeyEvent>
@@ -52,6 +53,12 @@ QmlController::QmlController(Controller *c, uint32_t shortcut, QObject *t, QObje
             buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN;
         else if (state.left_y < -30000)
             buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_UP;
+
+        if (ControllerManager::GetInstance()->IsUiInputSuspended()) {
+            repeat_timer->stop();
+            old_buttons = buttons;
+            return;
+        }
 
         for (auto &k : std::as_const(key_map)) {
             const bool pressed = buttons & k.first;

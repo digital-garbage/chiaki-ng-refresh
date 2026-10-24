@@ -96,7 +96,7 @@ DialogView {
         case 3: item = audioOutDevice; break;
         case 4: item = registerNewButton; break;
         case 5: item = resetAllKeys; break;
-        case 6: item = controllerMappingChange; break;
+        case 6: item = controllerTestButton.visible ? controllerTestButton : controllerMappingChange; break;
         case 7: item = firstRemoteFocusableItem(); break;
         case 8: item = profile; break;
         }
@@ -2800,8 +2800,16 @@ Label {
                         }
                         C.Button {
                             Layout.alignment: Qt.AlignLeft
-                            id: controllerMappingChange
+                            id: controllerTestButton
                             firstInFocusChain: true
+                            visible: controllersFlick.currentPad !== null
+                            text: qsTr("Test Controller")
+                            onClicked: controllerTestDialog.open()
+                        }
+                        C.Button {
+                            Layout.alignment: Qt.AlignLeft
+                            id: controllerMappingChange
+                            firstInFocusChain: !controllerTestButton.visible
                             text: "Change Controller Mapping"
                             onClicked: controllerMappingDialog.show({
                                 reset: false
@@ -2847,7 +2855,7 @@ Label {
                                 spacing: 6
                                 Label {
                                     Layout.topMargin: 6
-                                    text: qsTr("Paddle %1:").arg(index + 1)
+                                    text: [qsTr("Paddle P1 (upper left):"), qsTr("Paddle P2 (lower left):"), qsTr("Paddle P3 (upper right):"), qsTr("Paddle P4 (lower right):")][index]
                                     color: "#99ffffff"
                                     font.pixelSize: 12
                                 }
@@ -3458,6 +3466,10 @@ Label {
                     }
                 }
             }
+        }
+
+        ControllerTestDialog {
+            id: controllerTestDialog
         }
 
         Dialog {

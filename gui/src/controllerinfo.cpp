@@ -66,6 +66,7 @@ ControllerInfo::ControllerInfo(QObject *parent)
 
 ControllerInfo::~ControllerInfo()
 {
+    ControllerManager::GetInstance()->SetUiInputSuspended(false);
     closeAll();
 }
 
@@ -85,6 +86,15 @@ void ControllerInfo::setCurrent(int index)
     current_index = index;
     emit currentChanged();
     poll();
+}
+
+void ControllerInfo::setSuspendUi(bool suspend)
+{
+    if (suspend == suspend_ui)
+        return;
+    suspend_ui = suspend;
+    ControllerManager::GetInstance()->SetUiInputSuspended(suspend);
+    emit suspendUiChanged();
 }
 
 void ControllerInfo::setActive(bool active)
@@ -280,6 +290,11 @@ void ControllerInfo::poll()
             s[QString::fromLatin1(b.name)] = SDL_GameControllerGetButton(gc, b.button) != 0;
     }
 #endif
+    const bool combo = s.value(QStringLiteral("lb")).toBool() && s.value(QStringLiteral("rb")).toBool() && s.value(QStringLiteral("b")).toBool();
+    if (combo && !combo_down && suspend_ui)
+        emit closeComboPressed();
+    combo_down = combo;
+
     if (s != input_state) {
         input_state = s;
         emit stateChanged();

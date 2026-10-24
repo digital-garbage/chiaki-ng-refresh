@@ -23,6 +23,7 @@ class ControllerInfo : public QObject
     Q_PROPERTY(int current READ current WRITE setCurrent NOTIFY currentChanged)
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
     Q_PROPERTY(QVariantMap state READ state NOTIFY stateChanged)
+    Q_PROPERTY(bool suspendUi READ suspendUi WRITE setSuspendUi NOTIFY suspendUiChanged)
 
 public:
     explicit ControllerInfo(QObject *parent = nullptr);
@@ -34,6 +35,8 @@ public:
     bool active() const { return is_active; }
     void setActive(bool active);
     QVariantMap state() const { return input_state; }
+    bool suspendUi() const { return suspend_ui; }
+    void setSuspendUi(bool suspend);
 
 public slots:
     void refresh();
@@ -43,6 +46,8 @@ signals:
     void currentChanged();
     void activeChanged();
     void stateChanged();
+    void suspendUiChanged();
+    void closeComboPressed(); // L1 + R1 + east face button, closes the test dialog
 
 private:
     void poll();
@@ -60,6 +65,8 @@ private:
     QTimer poll_timer;
     int current_index = 0;
     bool is_active = false;
+    bool suspend_ui = false;
+    bool combo_down = false;
 };
 
 #endif
