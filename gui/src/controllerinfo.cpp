@@ -141,8 +141,10 @@ void ControllerInfo::refresh()
             break;
         case SDL_CONTROLLER_TYPE_PS3:
         case SDL_CONTROLLER_TYPE_PS4:
+            kind = QStringLiteral("ps4");
+            break;
         case SDL_CONTROLLER_TYPE_PS5:
-            kind = QStringLiteral("playstation");
+            kind = QStringLiteral("ps5");
             break;
         case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
             kind = QStringLiteral("switch");

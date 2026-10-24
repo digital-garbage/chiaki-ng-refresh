@@ -6122,6 +6122,8 @@ void QmlMainWindow::updateSwapchain()
 
     quick_item->setSize(size());
     quick_window->resize(size());
+    // the popup overlay follows the content item; without this it stays 0x0 and presses outside a popup are never seen
+    quick_window->contentItem()->setSize(size());
 
     if (quick_render->thread() == QThread::currentThread())
         resizeSwapchain();

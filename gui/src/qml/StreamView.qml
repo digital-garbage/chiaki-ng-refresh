@@ -537,7 +537,14 @@ Item {
         x: Math.round((root.width - width) / 2)
         y: Math.round((root.height - height) / 2)
         modal: true
-        padding: 30
+        padding: 24
+        width: 360
+        background: Rectangle {
+            radius: 14
+            color: "#1e1e1e"
+            border.width: 1
+            border.color: "#26ffffff"
+        }
         onAboutToShow: {
             closeAction = 0;
             sessionStopDialogActive = true;
@@ -552,34 +559,35 @@ Item {
         }
 
         ColumnLayout {
+            spacing: 6
+
             Label {
                 Layout.alignment: Qt.AlignCenter
                 text: qsTr("Disconnect Session")
                 font.bold: true
-                font.pixelSize: 24
+                font.pixelSize: 15
             }
 
             Label {
-                Layout.topMargin: 10
                 Layout.alignment: Qt.AlignCenter
-                text: qsTr("Do you want the Console to go into sleep mode?")
-                font.pixelSize: 20
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                text: qsTr("Do you want the console to go into sleep mode?")
+                font.pixelSize: 13
+                color: "#99ffffff"
             }
 
             RowLayout {
-                Layout.topMargin: 30
-                Layout.alignment: Qt.AlignCenter
-                spacing: 30
+                Layout.topMargin: 16
+                Layout.fillWidth: true
+                spacing: 10
 
-                Button {
+                C.Button {
                     id: sleepButton
-                    Layout.preferredWidth: 200
-                    Layout.minimumHeight: 80
-                    Layout.maximumHeight: 80
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
                     text: qsTr("Sleep")
-                    font.pixelSize: 24
-                    Material.roundedScale: Material.SmallScale
-                    Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.right: noButton
                     Keys.onReturnPressed: clicked()
                     Keys.onEscapePressed: sessionStopDialog.close()
@@ -590,15 +598,11 @@ Item {
                     }
                 }
 
-                Button {
+                C.Button {
                     id: noButton
-                    Layout.preferredWidth: 200
-                    Layout.minimumHeight: 80
-                    Layout.maximumHeight: 80
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
                     text: qsTr("No")
-                    font.pixelSize: 24
-                    Material.roundedScale: Material.SmallScale
-                    Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.left: sleepButton
                     Keys.onReturnPressed: clicked()
                     Keys.onEscapePressed: sessionStopDialog.close()
@@ -614,8 +618,8 @@ Item {
     Window {
         id: separateSessionStopWindow
         property int closeAction: 0
-        readonly property int dialogWidth: 700
-        readonly property int dialogHeight: 260
+        readonly property int dialogWidth: 380
+        readonly property int dialogHeight: 172
         visible: false
         flags: Qt.Dialog | Qt.FramelessWindowHint
         color: "transparent"
@@ -642,43 +646,47 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            radius: 12
-            color: Material.background
-            border.color: "#666666"
+            radius: 14
+            color: "#1e1e1e"
+            border.color: "#26ffffff"
             border.width: 1
         }
 
         ColumnLayout {
-            anchors.centerIn: parent
+            anchors {
+                fill: parent
+                margins: 24
+            }
+            spacing: 6
 
             Label {
                 Layout.alignment: Qt.AlignCenter
                 text: qsTr("Disconnect Session")
                 font.bold: true
-                font.pixelSize: 24
+                font.pixelSize: 15
             }
 
             Label {
-                Layout.topMargin: 10
                 Layout.alignment: Qt.AlignCenter
-                text: qsTr("Do you want the Console to go into sleep mode?")
-                font.pixelSize: 20
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                text: qsTr("Do you want the console to go into sleep mode?")
+                font.pixelSize: 13
+                color: "#99ffffff"
             }
 
-            RowLayout {
-                Layout.topMargin: 30
-                Layout.alignment: Qt.AlignCenter
-                spacing: 30
+            Item { Layout.fillHeight: true }
 
-                Button {
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                C.Button {
                     id: separateSleepButton
-                    Layout.preferredWidth: 200
-                    Layout.minimumHeight: 80
-                    Layout.maximumHeight: 80
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
                     text: qsTr("Sleep")
-                    font.pixelSize: 24
-                    Material.roundedScale: Material.SmallScale
-                    Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.right: separateNoButton
                     Keys.onReturnPressed: clicked()
                     Keys.onEscapePressed: separateSessionStopWindow.visible = false
@@ -688,15 +696,11 @@ Item {
                     }
                 }
 
-                Button {
+                C.Button {
                     id: separateNoButton
-                    Layout.preferredWidth: 200
-                    Layout.minimumHeight: 80
-                    Layout.maximumHeight: 80
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
                     text: qsTr("No")
-                    font.pixelSize: 24
-                    Material.roundedScale: Material.SmallScale
-                    Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.left: separateSleepButton
                     Keys.onReturnPressed: clicked()
                     Keys.onEscapePressed: separateSessionStopWindow.visible = false

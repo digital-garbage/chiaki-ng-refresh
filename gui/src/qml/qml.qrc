@@ -8,6 +8,7 @@
     <file>StreamMenuContent.qml</file>
     <file>ControllerCard.qml</file>
     <file>ControllerPicture.qml</file>
+    <file>ControllerIcon.qml</file>
     <file>ControllerTestDialog.qml</file>
     <file>ConfirmDialog.qml</file>
     <file>RemindDialog.qml</file>

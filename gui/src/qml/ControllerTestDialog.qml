@@ -12,7 +12,7 @@ import "controls" as C
 Popup {
     id: dlg
     property var info: ControllerInfo.controllers[ControllerInfo.current] || null
-    readonly property string closeButtonName: info && info.kind === "playstation" ? qsTr("O") : (info && info.kind === "switch" ? qsTr("A") : qsTr("B"))
+    readonly property string closeButtonName: info && (info.kind === "ps4" || info.kind === "ps5") ? qsTr("O") : (info && info.kind === "switch" ? qsTr("A") : qsTr("B"))
 
     parent: Overlay.overlay
     x: Math.round((root.width - width) / 2)
@@ -24,8 +24,14 @@ Popup {
     closePolicy: Popup.CloseOnEscape
     padding: 28
 
-    onOpened: ControllerInfo.suspendUi = true
-    onClosed: ControllerInfo.suspendUi = false
+    onOpened: {
+        ControllerInfo.active = true;
+        ControllerInfo.suspendUi = true;
+    }
+    onClosed: {
+        ControllerInfo.suspendUi = false;
+        ControllerInfo.active = false;
+    }
 
     Connections {
         target: ControllerInfo
