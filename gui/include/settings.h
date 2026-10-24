@@ -436,6 +436,17 @@ class Settings : public QObject
 		bool GetKeyboardEnabled() const;
 		void SetKeyboardEnabled(bool enabled);
 
+		// 0 touchpad, 1 right stick, 2 d-pad, 3 off
+		int GetMouseMode() const;
+		void SetMouseMode(int mode);
+		// slot: 0 left, 1 right, 2 middle, 3 back, 4 forward. 0 = mode default, 1 = not used, 2.. = PlayStation button list, then L2, R2
+		int GetMouseButton(int slot) const;
+		void SetMouseButton(int slot, int index);
+		int GetMouseSensitivity() const;
+		void SetMouseSensitivity(int sensitivity);
+		bool GetMouseInvertY() const;
+		void SetMouseInvertY(bool invert);
+
 		bool GetMouseTouchEnabled() const;
 		void SetMouseTouchEnabled(bool enabled);
 
@@ -482,6 +493,16 @@ class Settings : public QObject
 
 		QString GetTimeFormat() const     { return time_format; }
 		void ClearKeyMapping();
+
+		// Keyboard and mouse presets: each is a snapshot of the keymap/* and mouse settings. The live keys
+		// stay the single source the stream reads; selecting a preset copies its snapshot over them.
+		QStringList GetInputPresets() const;
+		QString GetInputPreset() const;
+		void SetInputPreset(const QString &name);
+		bool AddInputPreset(const QString &name);
+		void RemoveInputPreset(const QString &name);
+		void SaveCurrentInputPreset();
+		void LoadInputPreset(const QString &name);
 
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool GetSpeechProcessingEnabled() const;

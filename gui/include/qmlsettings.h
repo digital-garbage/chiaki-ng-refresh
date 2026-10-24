@@ -81,6 +81,12 @@ class QmlSettings : public QObject
     Q_PROPERTY(QString psnAuthTokenExpiry READ psnAuthTokenExpiry WRITE setPsnAuthTokenExpiry NOTIFY psnAuthTokenExpiryChanged)
     Q_PROPERTY(QString psnAccountId READ psnAccountId WRITE setPsnAccountId NOTIFY psnAccountIdChanged)
     Q_PROPERTY(bool mouseTouchEnabled READ mouseTouchEnabled WRITE setMouseTouchEnabled NOTIFY mouseTouchEnabledChanged)
+    Q_PROPERTY(QStringList inputPresets READ inputPresets NOTIFY inputPresetsChanged)
+    Q_PROPERTY(QString inputPreset READ inputPreset NOTIFY inputPresetsChanged)
+    Q_PROPERTY(int mouseButtonsRevision READ mouseButtonsRevision NOTIFY mouseButtonsChanged)
+    Q_PROPERTY(int mouseMode READ mouseMode WRITE setMouseMode NOTIFY mouseModeChanged)
+    Q_PROPERTY(int mouseSensitivity READ mouseSensitivity WRITE setMouseSensitivity NOTIFY mouseSensitivityChanged)
+    Q_PROPERTY(bool mouseInvertY READ mouseInvertY WRITE setMouseInvertY NOTIFY mouseInvertYChanged)
     Q_PROPERTY(bool keyboardEnabled READ keyboardEnabled WRITE setKeyboardEnabled NOTIFY keyboardEnabledChanged)
     Q_PROPERTY(bool dpadTouchEnabled READ dpadTouchEnabled WRITE setDpadTouchEnabled NOTIFY dpadTouchEnabledChanged)
     Q_PROPERTY(bool iDROnFECFailureEnabled READ iDROnFECFailureEnabled WRITE setIDROnFECFailureEnabled NOTIFY iDROnFECFailureEnabledChanged)
@@ -545,6 +551,12 @@ public:
     void setPsnAccountId(const QString &account_id);
 
     bool mouseTouchEnabled() const;
+    int mouseMode() const;
+    void setMouseMode(int mode);
+    int mouseSensitivity() const;
+    void setMouseSensitivity(int sensitivity);
+    bool mouseInvertY() const;
+    void setMouseInvertY(bool invert);
     void setMouseTouchEnabled(bool enabled);
 
     bool keyboardEnabled() const;
@@ -601,6 +613,14 @@ public:
     Q_INVOKABLE void deleteRegisteredHost(int index);
     Q_INVOKABLE void refreshAudioDevices();
     Q_INVOKABLE QString changeControllerKey(int button, int key);
+    QStringList inputPresets() const;
+    QString inputPreset() const;
+    int mouseButtonsRevision() const { return mouse_buttons_revision; }
+    Q_INVOKABLE void selectInputPreset(const QString &name);
+    Q_INVOKABLE bool addInputPreset(const QString &name);
+    Q_INVOKABLE void removeInputPreset(const QString &name);
+    Q_INVOKABLE int mouseButton(int slot) const;
+    Q_INVOKABLE void setMouseButton(int slot, int index);
     Q_INVOKABLE int paddleButton(int paddle) const;
     Q_INVOKABLE void setPaddleButton(int paddle, int index);
     Q_INVOKABLE void clearKeyMapping();
@@ -683,6 +703,11 @@ signals:
     void psnAuthTokenExpiryChanged();
     void psnAccountIdChanged();
     void mouseTouchEnabledChanged();
+    void mouseModeChanged();
+    void inputPresetsChanged();
+    void mouseButtonsChanged();
+    void mouseSensitivityChanged();
+    void mouseInvertYChanged();
     void keyboardEnabledChanged();
     void dpadTouchEnabledChanged();
     void dpadTouchIncrementChanged();
@@ -773,4 +798,7 @@ private:
     Settings *settings = {};
     QStringList audio_in_devices;
     QStringList audio_out_devices;
+private:
+    void emitInputChanged();
+    int mouse_buttons_revision = 0;
 };

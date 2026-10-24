@@ -37,6 +37,8 @@ set(SOURCE_FILES
 	src/controllermanager.cpp
 	include/controllerinfo.h
 	src/controllerinfo.cpp
+	include/inputdevices.h
+	src/inputdevices.cpp
 	include/systemstatus.h
 	src/systemstatus.cpp
 	include/psnaccountid.h

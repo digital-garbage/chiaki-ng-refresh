@@ -341,6 +341,7 @@ Item {
                 Keys.onReturnPressed: toggled()
                 KeyNavigation.right: highQualityButton
                 KeyNavigation.up: closeButton
+                KeyNavigation.down: presetPrevButton
             }
             MenuButton {
                 id: highQualityButton
@@ -355,6 +356,7 @@ Item {
                 KeyNavigation.left: defaultButton
                 KeyNavigation.right: highQualitySpatialButton
                 KeyNavigation.up: muteButton
+                KeyNavigation.down: presetPrevButton
             }
             MenuButton {
                 id: highQualitySpatialButton
@@ -369,6 +371,7 @@ Item {
                 KeyNavigation.left: highQualityButton
                 KeyNavigation.right: highQualityAdvancedSpatialButton
                 KeyNavigation.up: zoomButton
+                KeyNavigation.down: presetPrevButton
             }
             MenuButton {
                 id: highQualityAdvancedSpatialButton
@@ -383,6 +386,7 @@ Item {
                 KeyNavigation.left: highQualitySpatialButton
                 KeyNavigation.right: customButton
                 KeyNavigation.up: stretchButton
+                KeyNavigation.down: presetPrevButton
             }
             MenuButton {
                 id: customButton
@@ -396,8 +400,47 @@ Item {
                 Keys.onReturnPressed: toggled()
                 KeyNavigation.left: highQualityAdvancedSpatialButton
                 KeyNavigation.up: displaySettingsButton
+                KeyNavigation.down: presetNextButton
             }
             Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 4
+            readonly property var presets: Chiaki.settings.inputPresets
+            readonly property int presetIndex: Math.max(0, presets.indexOf(Chiaki.settings.inputPreset))
+            function step(delta) {
+                const list = presets;
+                Chiaki.settings.selectInputPreset(list[(presetIndex + delta + list.length) % list.length]);
+                if (Chiaki.session)
+                    Chiaki.session.ReloadInput();
+            }
+
+            Label { text: qsTr("Input"); color: menu.cDim; font.pixelSize: 11; Layout.leftMargin: 4; Layout.rightMargin: 4 }
+            MenuButton {
+                id: presetPrevButton
+                text: "\u2039"
+                onClicked: parent.step(-1)
+                KeyNavigation.right: presetNextButton
+                KeyNavigation.up: defaultButton
+            }
+            Label {
+                Layout.preferredWidth: 150
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                text: Chiaki.settings.inputPreset
+                font.pixelSize: 13
+            }
+            MenuButton {
+                id: presetNextButton
+                text: "\u203a"
+                onClicked: parent.step(1)
+                KeyNavigation.left: presetPrevButton
+                KeyNavigation.up: customButton
+            }
+            Item { Layout.fillWidth: true }
+            Label { text: qsTr("Menu: \u2318O"); color: menu.cDim; font.pixelSize: 11; Layout.rightMargin: 4 }
         }
     }
 }

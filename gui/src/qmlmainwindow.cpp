@@ -1,3 +1,6 @@
+#ifdef __APPLE__
+#include <CoreGraphics/CoreGraphics.h>
+#endif
 #include "qmlmainwindow.h"
 #include "qmlbackend.h"
 #include "qmlsvgprovider.h"
@@ -7578,8 +7581,21 @@ bool QmlMainWindow::event(QEvent *event)
         if (static_cast<QMouseEvent*>(event)->source() != Qt::MouseEventNotSynthesized)
             return true;
         if (session && !grab_input) {
-            if (event->type() == QEvent::MouseMove)
+            if (event->type() == QEvent::MouseMove) {
                 session->HandleMouseMoveEvent(static_cast<QMouseEvent*>(event), width(), height());
+                if (session->MouseRecentersCursor()) {
+                    setCursor(Qt::BlankCursor);
+                    const QPointF pos = static_cast<QMouseEvent*>(event)->scenePosition();
+                    // recentering on every event distorts the movement, so only do it once the cursor has drifted far
+                    if (std::abs(pos.x() - width() / 2.0) > width() * 0.35 || std::abs(pos.y() - height() / 2.0) > height() * 0.35) {
+                        QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+#ifdef Q_OS_MACOS
+                        // macOS ignores the mouse for ~0.25 s after a cursor warp; re-associating the mouse with the cursor ends that
+                        CGAssociateMouseAndMouseCursorPosition(true);
+#endif
+                    }
+                }
+            }
             else if (event->type() == QEvent::MouseButtonPress)
                 session->HandleMousePressEvent(static_cast<QMouseEvent*>(event));
             else if (event->type() == QEvent::MouseButtonRelease)

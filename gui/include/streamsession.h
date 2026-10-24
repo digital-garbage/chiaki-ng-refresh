@@ -95,6 +95,10 @@ class SdeckHapticsWorker;
 		bool enable_keyboard;
 		bool keyboard_controller_enabled;
 		bool mouse_touch_enabled;
+		int mouse_mode = 0;
+		int mouse_sensitivity = 50;
+		bool mouse_invert_y = false;
+		int mouse_buttons[5] = {0, 0, 0, 0, 0};
 		bool enable_dualsense;
 		bool auto_regist;
 		float haptic_override;
@@ -223,6 +227,20 @@ class StreamSession : public QObject
 		ChiakiControllerState touch_state;
 		QMap<int, uint8_t> touch_tracker;
 		int8_t mouse_touch_id;
+		// mouse as right stick / d-pad: pointer offset from the window center, summed per tick, cursor re-centered
+		int mouse_mode = 0;
+		float mouse_sensitivity = 50.0f;
+		bool mouse_invert_y = false;
+		QPointF mouse_accum;
+		QPointF mouse_last;
+		bool mouse_last_valid = false;
+		QTimer *mouse_timer = nullptr;
+		Settings *settings = nullptr;
+		ChiakiControllerState mouse_state;
+		void MouseTick();
+		void ApplyMouseConfig(int mode, int sensitivity, bool invert_y, const int *buttons);
+		int mouse_button_map[5] = {0, 0, 0, 0, 0};
+		void ApplyMouseButton(QMouseEvent *event, bool pressed);
 		ChiakiControllerState dpad_touch_state;
 		uint16_t dpad_touch_increment;
 		float trigger_override;
@@ -339,6 +357,7 @@ class StreamSession : public QObject
 		void Stop();
 		void GoToBed();
 	Q_INVOKABLE bool RequestIDR();
+	Q_INVOKABLE void ReloadInput();
 		void ToggleMute();
 		void SetLoginPIN(const QString &pin);
 		void GoHome();
@@ -367,6 +386,7 @@ class StreamSession : public QObject
 		void HandleMouseReleaseEvent(QMouseEvent *event);
 		void HandleMousePressEvent(QMouseEvent *event);
 		void HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height);
+		bool MouseRecentersCursor() const { return mouse_mode == 1 || mouse_mode == 2; }
 #if CHIAKI_GUI_ENABLE_SPEEX
 		bool ProcessMicFrame(int16_t *echo_buf);
 #endif

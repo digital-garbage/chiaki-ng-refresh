@@ -322,7 +322,7 @@ DialogView {
             }
 
             TabButton {
-                text: qsTr("Keys")
+                text: qsTr("Keyboard and Mouse")
                 id: keys
                 focusPolicy: Qt.NoFocus
                 Image {
@@ -444,7 +444,7 @@ DialogView {
                 anchors { fill: parent; margins: 10 }
                 spacing: 2
                 interactive: false
-                model: [qsTr("General"), qsTr("Video"), qsTr("Stream"), qsTr("Audio/Wifi"), qsTr("Consoles"), qsTr("Keys"), qsTr("Controllers"), qsTr("Remote"), qsTr("Config")]
+                model: [qsTr("General"), qsTr("Video"), qsTr("Stream"), qsTr("Audio/Wifi"), qsTr("Consoles"), qsTr("Keyboard and Mouse"), qsTr("Controllers"), qsTr("Remote"), qsTr("Config")]
                 delegate: ItemDelegate {
                     id: sideItem
                     required property int index
@@ -2430,12 +2430,187 @@ Label {
                         rowSpacing: 3
                         columnSpacing: 10
 
+                        ColumnLayout {
+                            Layout.columnSpan: 3
+                            Layout.fillWidth: true
+                            Layout.bottomMargin: 10
+                            spacing: 6
+                            onVisibleChanged: if (visible) InputDevices.refresh()
+                            Timer {
+                                interval: 4000
+                                repeat: true
+                                running: parent.visible
+                                onTriggered: InputDevices.refresh()
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 10
+                                DeviceCard {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    Layout.alignment: Qt.AlignTop
+                                    kind: "keyboard"
+                                    devices: InputDevices.keyboards
+                                }
+                                DeviceCard {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    Layout.alignment: Qt.AlignTop
+                                    kind: "mouse"
+                                    devices: InputDevices.mice
+                                }
+                            }
+
+                            Label {
+                                Layout.topMargin: 8
+                                text: qsTr("Preset")
+                                color: "#99ffffff"
+                                font.pixelSize: 12
+                            }
+                            RowLayout {
+                                spacing: 8
+                                C.ComboBox {
+                                    id: presetCombo
+                                    firstInFocusChain: true
+                                    Layout.preferredWidth: 280
+                                    model: Chiaki.settings.inputPresets
+                                    currentIndex: Math.max(0, Chiaki.settings.inputPresets.indexOf(Chiaki.settings.inputPreset))
+                                    onActivated: index => Chiaki.settings.selectInputPreset(Chiaki.settings.inputPresets[index])
+                                }
+                                C.Button {
+                                    text: "+"
+                                    leftPadding: 14
+                                    rightPadding: 14
+                                    onClicked: {
+                                        presetName.text = "";
+                                        presetAddRow.visible = true;
+                                        presetName.forceActiveFocus();
+                                    }
+                                }
+                                C.Button {
+                                    text: "\u2212"
+                                    leftPadding: 14
+                                    rightPadding: 14
+                                    enabled: Chiaki.settings.inputPreset !== "Default"
+                                    onClicked: Chiaki.settings.removeInputPreset(Chiaki.settings.inputPreset)
+                                }
+                            }
+                            RowLayout {
+                                id: presetAddRow
+                                visible: false
+                                spacing: 8
+                                TextField {
+                                    id: presetName
+                                    Layout.preferredWidth: 280
+                                    placeholderText: qsTr("New preset name")
+                                    onAccepted: addPresetButton.clicked()
+                                }
+                                C.Button {
+                                    id: addPresetButton
+                                    text: qsTr("Add")
+                                    onClicked: {
+                                        if (Chiaki.settings.addInputPreset(presetName.text))
+                                            presetAddRow.visible = false;
+                                    }
+                                }
+                                C.Button {
+                                    text: qsTr("Cancel")
+                                    onClicked: presetAddRow.visible = false
+                                }
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                                text: qsTr("A preset stores the key mapping and the mouse settings below. Switch presets during a stream from the stream menu (Cmd+O).")
+                                color: "#99ffffff"
+                                font.pixelSize: 11
+                            }
+
+                            Label {
+                                Layout.topMargin: 10
+                                text: qsTr("Mouse (experimental)")
+                                font.pixelSize: 15
+                                font.bold: true
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                                text: qsTr("Mouse as stick or D-Pad is experimental: movement can be uneven and some moves may be missed.")
+                                color: "#99ffffff"
+                                font.pixelSize: 11
+                            }
+                            Label { text: qsTr("Mouse Mode"); color: "#99ffffff"; font.pixelSize: 12 }
+                            C.ComboBox {
+                                Layout.preferredWidth: 360
+                                model: [qsTr("Touchpad"), qsTr("Right Stick"), qsTr("D-Pad"), qsTr("Off")]
+                                currentIndex: Chiaki.settings.mouseMode
+                                onActivated: index => Chiaki.settings.mouseMode = index
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                                text: Chiaki.settings.mouseMode === 0 ? qsTr("The mouse moves a finger on the console touchpad.")
+                                    : Chiaki.settings.mouseMode === 1 ? qsTr("Moving the mouse tilts the right stick. The pointer is held at the window center.")
+                                    : Chiaki.settings.mouseMode === 2 ? qsTr("Moving the mouse presses the D-Pad. The pointer is held at the window center.")
+                                    : qsTr("The mouse does nothing during a stream.")
+                                color: "#99ffffff"
+                                font.pixelSize: 11
+                            }
+                            RowLayout {
+                                visible: Chiaki.settings.mouseMode === 1 || Chiaki.settings.mouseMode === 2
+                                spacing: 10
+                                Label { text: qsTr("Sensitivity"); color: "#99ffffff"; font.pixelSize: 12 }
+                                C.Slider {
+                                    Layout.preferredWidth: 240
+                                    from: 1; to: 100; stepSize: 1
+                                    value: Chiaki.settings.mouseSensitivity
+                                    onMoved: Chiaki.settings.mouseSensitivity = value
+                                }
+                                Label { text: Chiaki.settings.mouseSensitivity; font.pixelSize: 12; color: "#b3ffffff" }
+                            }
+                            C.CheckBox {
+                                visible: Chiaki.settings.mouseMode === 1
+                                text: qsTr("Invert Y axis")
+                                checked: Chiaki.settings.mouseInvertY
+                                onToggled: Chiaki.settings.mouseInvertY = checked
+                            }
+
+                            Label {
+                                Layout.topMargin: 6
+                                visible: Chiaki.settings.mouseMode !== 3
+                                text: qsTr("Mouse Buttons")
+                                font.pixelSize: 15
+                                font.bold: true
+                            }
+                            Repeater {
+                                model: Chiaki.settings.mouseMode === 3 ? [] : [qsTr("Left Button"), qsTr("Right Button"), qsTr("Middle Button"), qsTr("Back Button"), qsTr("Forward Button")]
+                                ColumnLayout {
+                                    spacing: 4
+                                    Label { text: modelData; color: "#99ffffff"; font.pixelSize: 12; Layout.topMargin: 4 }
+                                    C.ComboBox {
+                                        Layout.preferredWidth: 360
+                                        model: [qsTr("Default"), qsTr("Not Used"), "Cross", "Moon", "Box", "Pyramid", "Dpad Left", "Dpad Right", "Dpad Up", "Dpad Down", "L1", "R1", "L3", "R3", "Options", "Share", "Touchpad", "PS", "L2", "R2"]
+                                        currentIndex: { Chiaki.settings.mouseButtonsRevision; return Chiaki.settings.mouseButton(index); }
+                                        onActivated: i => Chiaki.settings.setMouseButton(index, i)
+                                    }
+                                }
+                            }
+
+                            Label {
+                                Layout.topMargin: 10
+                                text: qsTr("Keyboard")
+                                font.pixelSize: 15
+                                font.bold: true
+                            }
+                        }
+
                         Button {
                             id: resetAllKeys
                             text: "Reset All Keys"
                             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                             Layout.fillWidth: true
-                            property bool firstInFocusChain: true
+                            property bool firstInFocusChain: false
                             property bool lastInFocusChain: false
                             onClicked: Chiaki.settings.clearKeyMapping()
                             Material.roundedScale: Material.SmallScale
@@ -2450,180 +2625,14 @@ Label {
                                 }
                             }
                             Keys.onPressed: (event) => {
-                                switch (event.key) {
-                                case Qt.Key_Down:
-                                    if (!lastInFocusChain) {
-                                        let item = nextItemInFocusChain();
-                                        if (item) {
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                            keysFlick.ensureItemVisible(item);
-                                        }
-                                        for(var i = 0; i < 3; i++)
-                                        {
-                                            let item2 = item.nextItemInFocusChain();
-                                            if (item)
-                                            {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                keysFlick.ensureItemVisible(item);
-                                                item = item2;
-                                            }
-                                        }
-                                        event.accepted = true;
-                                    }
-                                    break;
-                                case Qt.Key_Right:
-                                    if (!lastInFocusChain) {
-                                        let item = nextItemInFocusChain();
-                                        if (item) {
-                                            item.forceActiveFocus(Qt.TabFocusReason);
-                                            keysFlick.ensureItemVisible(item);
-                                        }
-                                        event.accepted = true;
-                                    }
-                                    break;
-                                case Qt.Key_Return:
-                                    if (visualFocus) {
-                                        clicked();
+                                const down = event.key === Qt.Key_Down;
+                                if (down || event.key === Qt.Key_Up) {
+                                    let item = nextItemInFocusChain(down);
+                                    if (item) {
+                                        item.forceActiveFocus(Qt.TabFocusReason);
+                                        keysFlick.ensureItemVisible(item);
                                     }
                                     event.accepted = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        CheckBox {
-                            text: qsTr("Keyboard as controller")
-                            checked: {
-                                Chiaki.settings.keyboardEnabled
-                            }
-                            onToggled: Chiaki.settings.keyboardEnabled = checked
-                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                            Layout.fillWidth: true
-                            property bool firstInFocusChain: false
-                            property bool lastInFocusChain: false
-                            Material.roundedScale: Material.SmallScale
-                            Material.background: visualFocus ? Material.accent : undefined
-                            onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
-
-                            Component.onDestruction: {
-                                if (visualFocus) {
-                                    let item = nextItemInFocusChain();
-                                    if (item)
-                                        item.forceActiveFocus(Qt.TabFocusReason);
-                                }
-                            }
-                            Keys.onPressed: (event) => {
-                                switch (event.key) {
-                                    case Qt.Key_Left:
-                                        if (!firstInFocusChain) {
-                                            let item = nextItemInFocusChain(false);
-                                            if (item) {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                keysFlick.ensureItemVisible(item);
-                                            }
-                                            event.accepted = true;
-                                        }
-                                        break;
-                                    case Qt.Key_Right:
-                                        if  (!lastInFocusChain) {
-                                            let item = nextItemInFocusChain();
-                                            if (item) {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                keysFlick.ensureItemVisible(item);
-                                            }
-                                            event.accepted = true;
-                                        }
-                                        break;
-                                    case Qt.Key_Down:
-                                        if (!lastInFocusChain) {
-                                            let item = nextItemInFocusChain();
-                                            if (item) {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                keysFlick.ensureItemVisible(item);
-                                            }
-                                            for(var i = 0; i < 3; i++)
-                                            {
-                                                let item2 = item.nextItemInFocusChain();
-                                                if (item)
-                                                {
-                                                    item.forceActiveFocus(Qt.TabFocusReason);
-                                                    keysFlick.ensureItemVisible(item);
-                                                    item = item2;
-                                                }
-                                            }
-                                            event.accepted = true;
-                                        }
-                                        break;
-                                    case Qt.Key_Return:
-                                        if (visualFocus) {
-                                            toggle();
-                                            toggled();
-                                        }
-                                        event.accepted = true;
-                                        break;
-                                }
-                            }
-                        }
-                        CheckBox {
-                            text: qsTr("Enable Mouse Touchpad")
-                            checked: {
-                                Chiaki.settings.mouseTouchEnabled
-                            }
-                            onToggled: Chiaki.settings.mouseTouchEnabled = checked
-                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                            Layout.fillWidth: true
-                            property bool firstInFocusChain: false
-                            property bool lastInFocusChain: false
-                            Material.roundedScale: Material.SmallScale
-                            Material.background: visualFocus ? Material.accent : undefined
-                            onActiveFocusChanged: if (activeFocus) keysFlick.ensureItemVisible(this)
-
-                            Component.onDestruction: {
-                                if (visualFocus) {
-                                    let item = nextItemInFocusChain();
-                                    if (item)
-                                        item.forceActiveFocus(Qt.TabFocusReason);
-                                }
-                            }
-                            Keys.onPressed: (event) => {
-                                switch (event.key) {
-                                    case Qt.Key_Left:
-                                        if (!firstInFocusChain) {
-                                            let item = nextItemInFocusChain(false);
-                                            if (item) {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                keysFlick.ensureItemVisible(item);
-                                            }
-                                            event.accepted = true;
-                                        }
-                                        break;
-                                    case Qt.Key_Down:
-                                        if (!lastInFocusChain) {
-                                            let item = nextItemInFocusChain();
-                                            if (item) {
-                                                item.forceActiveFocus(Qt.TabFocusReason);
-                                                keysFlick.ensureItemVisible(item);
-                                            }
-                                            for(var i = 0; i < 3; i++)
-                                            {
-                                                let item2 = item.nextItemInFocusChain();
-                                                if (item)
-                                                {
-                                                    item.forceActiveFocus(Qt.TabFocusReason);
-                                                    keysFlick.ensureItemVisible(item);
-                                                    item = item2;
-                                                }
-                                            }
-                                            event.accepted = true;
-                                        }
-                                        break;
-                                    case Qt.Key_Return:
-                                        if (visualFocus) {
-                                            toggle();
-                                            toggled();
-                                        }
-                                        event.accepted = true;
-                                        break;
                                 }
                             }
                         }

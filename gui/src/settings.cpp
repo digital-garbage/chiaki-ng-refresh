@@ -1002,6 +1002,44 @@ void Settings::SetKeyboardEnabled(bool enabled)
 	settings.setValue("settings/keyboard_enabled", enabled);
 }
 
+int Settings::GetMouseMode() const
+{
+	// older configs only know the touchpad on/off switch
+	return settings.value("settings/mouse_mode", GetMouseTouchEnabled() ? 0 : 3).toInt();
+}
+void Settings::SetMouseMode(int mode)
+{
+	settings.setValue("settings/mouse_mode", mode);
+	SetMouseTouchEnabled(mode == 0);
+}
+
+int Settings::GetMouseButton(int slot) const
+{
+	return settings.value(QString("settings/mouse_button%1").arg(slot), 0).toInt();
+}
+void Settings::SetMouseButton(int slot, int index)
+{
+	settings.setValue(QString("settings/mouse_button%1").arg(slot), index);
+}
+
+int Settings::GetMouseSensitivity() const
+{
+	return settings.value("settings/mouse_sensitivity", 50).toInt();
+}
+void Settings::SetMouseSensitivity(int sensitivity)
+{
+	settings.setValue("settings/mouse_sensitivity", sensitivity);
+}
+
+bool Settings::GetMouseInvertY() const
+{
+	return settings.value("settings/mouse_invert_y", false).toBool();
+}
+void Settings::SetMouseInvertY(bool invert)
+{
+	settings.setValue("settings/mouse_invert_y", invert);
+}
+
 bool Settings::GetMouseTouchEnabled() const
 {
 	return settings.value("settings/mouse_touch_enabled", true).toBool();
@@ -2523,4 +2561,94 @@ QMap<Qt::Key, int> Settings::GetControllerMappingForDecoding()
 		result[it.value()] = it.key();
 	}
 	return result;
+}
+
+// Preset snapshot = every live key under keymap/ plus the mouse settings
+static bool IsInputKey(const QString &key)
+{
+	return key.startsWith("keymap/") || key == "settings/mouse_mode" || key == "settings/mouse_sensitivity"
+		|| key == "settings/mouse_invert_y" || key.startsWith("settings/mouse_button");
+}
+
+QStringList Settings::GetInputPresets() const
+{
+	QStringList list{QStringLiteral("Default")};
+	for(const auto &name : settings.value("settings/input_presets").toStringList())
+		if(name != QLatin1String("Default"))
+			list.append(name);
+	return list;
+}
+
+QString Settings::GetInputPreset() const
+{
+	const auto name = settings.value("settings/input_preset", "Default").toString();
+	return GetInputPresets().contains(name) ? name : QStringLiteral("Default");
+}
+
+void Settings::SaveCurrentInputPreset()
+{
+	const QString group = "input_preset_data/" + GetInputPreset() + "/";
+	for(const auto &key : settings.allKeys())
+		if(key.startsWith(group))
+			settings.remove(key);
+	for(const auto &key : settings.allKeys())
+		if(IsInputKey(key))
+			settings.setValue(group + key, settings.value(key));
+}
+
+void Settings::SetInputPreset(const QString &name)
+{
+	if(!GetInputPresets().contains(name))
+		return;
+	SaveCurrentInputPreset();
+	LoadInputPreset(name);
+}
+
+void Settings::LoadInputPreset(const QString &name)
+{
+	for(const auto &key : settings.allKeys())
+		if(IsInputKey(key))
+			settings.remove(key);
+	const QString group = "input_preset_data/" + name + "/";
+	for(const auto &key : settings.allKeys())
+		if(key.startsWith(group))
+			settings.setValue(key.mid(group.size()), settings.value(key));
+	settings.setValue("settings/input_preset", name);
+}
+
+bool Settings::AddInputPreset(const QString &name)
+{
+	const QString trimmed = name.trimmed();
+	if(trimmed.isEmpty() || trimmed.contains('/') || GetInputPresets().contains(trimmed))
+		return false;
+	SaveCurrentInputPreset();
+	auto list = GetInputPresets();
+	list.removeFirst();
+	list.append(trimmed);
+	settings.setValue("settings/input_presets", list);
+	// the new preset starts as a copy of the current one
+	const QString from = "input_preset_data/" + GetInputPreset() + "/";
+	const QString to = "input_preset_data/" + trimmed + "/";
+	for(const auto &key : settings.allKeys())
+		if(key.startsWith(from))
+			settings.setValue(to + key.mid(from.size()), settings.value(key));
+	settings.setValue("settings/input_preset", trimmed);
+	return true;
+}
+
+void Settings::RemoveInputPreset(const QString &name)
+{
+	if(name == QLatin1String("Default") || !GetInputPresets().contains(name))
+		return;
+	auto list = settings.value("settings/input_presets").toStringList();
+	list.removeAll(name);
+	settings.setValue("settings/input_presets", list);
+	for(const auto &key : settings.allKeys())
+		if(key.startsWith("input_preset_data/" + name + "/"))
+			settings.remove(key);
+	if(settings.value("settings/input_preset").toString() == name)
+	{
+		settings.setValue("settings/input_preset", "Default");
+		LoadInputPreset("Default");
+	}
 }

@@ -7,6 +7,7 @@
     <file>StreamMenuWindow.qml</file>
     <file>StreamMenuContent.qml</file>
     <file>ControllerCard.qml</file>
+    <file>DeviceCard.qml</file>
     <file>ControllerPicture.qml</file>
     <file>ControllerIcon.qml</file>
     <file>ControllerTestDialog.qml</file>

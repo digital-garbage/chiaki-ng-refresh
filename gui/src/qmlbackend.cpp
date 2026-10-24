@@ -4,6 +4,7 @@
 #include "streamsession.h"
 #include "controllermanager.h"
 #include "controllerinfo.h"
+#include "inputdevices.h"
 #include "systemstatus.h"
 #include "psnaccountid.h"
 #include "psntoken.h"
@@ -293,6 +294,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     const char *uri = "org.streetpea.chiaking";
     qmlRegisterSingletonInstance(uri, 1, 0, "Chiaki", this);
     qmlRegisterSingletonInstance(uri, 1, 0, "ControllerInfo", new ControllerInfo(this));
+    qmlRegisterSingletonInstance(uri, 1, 0, "InputDevices", new InputDevices(this));
     qmlRegisterSingletonInstance(uri, 1, 0, "SystemStatus", new SystemStatus(this));
     qmlRegisterUncreatableType<QmlMainWindow>(uri, 1, 0, "ChiakiWindow", {});
     qmlRegisterUncreatableType<QmlSettings>(uri, 1, 0, "ChiakiSettings", {});

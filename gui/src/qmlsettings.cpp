@@ -1950,6 +1950,9 @@ void QmlSettings::refreshAllKeys()
     emit psnAuthTokenExpiryChanged();
     emit psnAccountIdChanged();
     emit mouseTouchEnabledChanged();
+    emit mouseModeChanged();
+    emit mouseSensitivityChanged();
+    emit mouseInvertYChanged();
     emit keyboardEnabledChanged();
     emit dpadTouchEnabledChanged();
     emit iDROnFECFailureEnabledChanged();
@@ -2112,4 +2115,89 @@ void QmlSettings::setPaddleButton(int paddle, int index)
 {
     settings->SetPaddleButton(paddle, index);
     ControllerManager::GetInstance()->SetPaddleButton(paddle, index);
+}
+
+int QmlSettings::mouseMode() const
+{
+    return settings->GetMouseMode();
+}
+
+void QmlSettings::setMouseMode(int mode)
+{
+    settings->SetMouseMode(mode);
+    emit mouseModeChanged();
+    emit mouseTouchEnabledChanged();
+}
+
+int QmlSettings::mouseSensitivity() const
+{
+    return settings->GetMouseSensitivity();
+}
+
+void QmlSettings::setMouseSensitivity(int sensitivity)
+{
+    settings->SetMouseSensitivity(sensitivity);
+    emit mouseSensitivityChanged();
+}
+
+bool QmlSettings::mouseInvertY() const
+{
+    return settings->GetMouseInvertY();
+}
+
+void QmlSettings::setMouseInvertY(bool invert)
+{
+    settings->SetMouseInvertY(invert);
+    emit mouseInvertYChanged();
+}
+
+QStringList QmlSettings::inputPresets() const
+{
+    return settings->GetInputPresets();
+}
+
+QString QmlSettings::inputPreset() const
+{
+    return settings->GetInputPreset();
+}
+
+void QmlSettings::emitInputChanged()
+{
+    mouse_buttons_revision++;
+    emit inputPresetsChanged();
+    emit controllerMappingChanged();
+    emit mouseModeChanged();
+    emit mouseTouchEnabledChanged();
+    emit mouseSensitivityChanged();
+    emit mouseInvertYChanged();
+    emit mouseButtonsChanged();
+}
+
+void QmlSettings::selectInputPreset(const QString &name)
+{
+    settings->SetInputPreset(name);
+    emitInputChanged();
+}
+
+bool QmlSettings::addInputPreset(const QString &name)
+{
+    const bool ok = settings->AddInputPreset(name);
+    emitInputChanged();
+    return ok;
+}
+
+void QmlSettings::removeInputPreset(const QString &name)
+{
+    settings->RemoveInputPreset(name);
+    emitInputChanged();
+}
+
+int QmlSettings::mouseButton(int slot) const
+{
+    return settings->GetMouseButton(slot);
+}
+
+void QmlSettings::setMouseButton(int slot, int index)
+{
+    settings->SetMouseButton(slot, index);
 }
