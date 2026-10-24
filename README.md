@@ -24,6 +24,9 @@ A fork of [chiaki-ng](https://github.com/streetpea/chiaki-ng) (itself a fork of 
 - The in-stream menu now has a labeled Disconnect button instead of a bare "x".
 - Cmd+W disconnects and returns to the main menu without quitting the app.
 
+**Controllers**
+- Xbox Elite paddles can be mapped to any PlayStation button in Settings > Controllers. Paddle 1 defaults to the touchpad click, which Xbox pads otherwise cannot send.
+
 **Other**
 - Redesigned About dialog.
 
@@ -33,6 +36,7 @@ The changes are mostly in `gui/src/qml` (`MainView.qml`, `DialogView.qml`, `Sett
 
 Follow the [upstream documentation](https://streetpea.github.io/chiaki-ng/) for dependencies and the CMake build. Notes from running it on macOS:
 - Xbox controllers work through SDL (tested with an Xbox One Elite Series 2).
+- Paddles need direct HID access, which macOS gates behind Input Monitoring. The app asks for it at startup; allow it and restart. Sign every build with the same certificate, otherwise macOS forgets the permission after each rebuild.
 - Registration and streaming need the Local Network permission. Use a code-signed app bundle (ad-hoc signing with `gui/entitlements.xml` is enough), include `NSLocalNetworkUsageDescription` in its Info.plist, and start it with `open`, not from a terminal.
 
 ## License
