@@ -39,7 +39,31 @@ The changes are mostly in `gui/src/qml` (`MainView.qml`, `DialogView.qml`, `Sett
 
 ## Building on macOS
 
-Follow the [upstream documentation](https://streetpea.github.io/chiaki-ng/) for dependencies and the CMake build. Notes from running it on macOS:
+Requirements: macOS on Apple Silicon, Xcode command line tools, and [Homebrew](https://brew.sh) installed in `/opt/homebrew` (the Intel one in `/usr/local` does not work for this). Install every dependency in one step, any current version is fine:
+
+```sh
+brew bundle
+```
+
+Build (the Qt modules live in separate Homebrew prefixes, hence the long path lists):
+
+```sh
+python3 -m venv .venv && .venv/bin/pip install "protobuf==5.29.*"
+P=/opt/homebrew/opt
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF \
+  -DPython_EXECUTABLE=$PWD/.venv/bin/python \
+  -DCMAKE_PREFIX_PATH="$P/openssl@3;$P/protobuf@29;$P/qtbase;$P/qtdeclarative;$P/qtsvg;$P/qtwebengine;$P/qtwebchannel;$P/qtpositioning;$P/qtshadertools" \
+  -DQT_ADDITIONAL_PACKAGES_PREFIX_PATH="$P/qtsvg;$P/qtdeclarative;$P/qtwebengine;$P/qtwebchannel;$P/qtpositioning;$P/qttools"
+ninja -C build chiaki
+```
+
+Make the app independent of Homebrew (copies Qt and all libraries into it, about 400 MB), then Homebrew can be removed:
+
+```sh
+scripts/macos-bundle.sh build/gui/chiaki.app "chiaki-ng local signing"
+```
+
+Notes from running it on macOS:
 - Xbox controllers work through SDL (tested with an Xbox One Elite Series 2).
 - Paddles need direct HID access, which macOS gates behind Input Monitoring. The app asks for it at startup; allow it and restart. Sign every build with the same certificate, otherwise macOS forgets the permission after each rebuild.
 - Registration and streaming need the Local Network permission. Use a code-signed app bundle (ad-hoc signing with `gui/entitlements.xml` is enough), include `NSLocalNetworkUsageDescription` in its Info.plist, and start it with `open`, not from a terminal.
