@@ -235,6 +235,10 @@ class StreamSession : public QObject
 		QPointF mouse_last;
 		bool mouse_last_valid = false;
 		QTimer *mouse_timer = nullptr;
+		double lat_audio_sum_ms = 0, lat_audio_max_ms = 0;
+		uint64_t lat_audio_samples = 0, lat_last_log_us = 0;
+		double lat_audio_min_ms = 1e9;
+		void DropQueuedAudio(size_t bytes);
 		Settings *settings = nullptr;
 		ChiakiControllerState mouse_state;
 		void MouseTick();
@@ -394,7 +398,7 @@ class StreamSession : public QObject
 		void DrainMicRingBuffer();
 		void ReadMic(const QByteArray &micdata);
 
-		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
+		void BlockInput(bool block) { QMutexLocker input_lock(&ControllerManager::InputMutex()); input_block = block ? 1 : 2; SendFeedbackState(); }
 
 	signals:
 		void FfmpegFrameAvailable();

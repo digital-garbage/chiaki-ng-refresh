@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
+#include "latencystats.h"
+#include <chiaki/time.h>
 #include <controllermanager.h>
 
 #include <QCoreApplication>
@@ -128,7 +130,7 @@ static QSet<QPair<uint16_t, uint16_t>> chiaki_steam_virtual_controller_ids({
 
 static ControllerManager *instance = nullptr;
 
-#define UPDATE_INTERVAL_MS 4
+#define UPDATE_INTERVAL_MS 1
 #define MOVE_CHECK_MS 1000
 
 ControllerManager *ControllerManager::GetInstance()
@@ -153,19 +155,47 @@ ControllerManager::ControllerManager(QObject *parent)
 	if(SDL_Init(SDL_INIT_GAMECONTROLLER) < 0)
 		return;
 
-	auto timer = new QTimer(this);
-	connect(timer, &QTimer::timeout, this, &ControllerManager::HandleEvents);
-	timer->start(UPDATE_INTERVAL_MS);
+	input_thread = QThread::create([this]() {
+		while(!QThread::currentThread()->isInterruptionRequested())
+		{
+			{
+				QMutexLocker locker(&InputMutex());
+				HandleEvents();
+			}
+			QThread::msleep(UPDATE_INTERVAL_MS);
+		}
+	});
+	input_thread->setObjectName("input");
+	connect(qApp, &QCoreApplication::aboutToQuit, this, &ControllerManager::StopInputThread);
 	auto move_timer = new QTimer(this);
 	connect(move_timer, &QTimer::timeout, this, &ControllerManager::CheckMoved);
 	move_timer->start(MOVE_CHECK_MS);
 #endif
 
 	UpdateAvailableControllers();
+	if(input_thread)
+		input_thread->start(QThread::TimeCriticalPriority);
+}
+
+QRecursiveMutex &ControllerManager::InputMutex()
+{
+	static QRecursiveMutex mutex;
+	return mutex;
+}
+
+void ControllerManager::StopInputThread()
+{
+	if(!input_thread)
+		return;
+	input_thread->requestInterruption();
+	input_thread->wait();
+	delete input_thread;
+	input_thread = nullptr;
 }
 
 ControllerManager::~ControllerManager()
 {
+	StopInputThread();
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	open_controllers.clear();
 	SDL_Quit();
@@ -200,6 +230,7 @@ void ControllerManager::SetButtonsByPos()
 
 void ControllerManager::UpdateAvailableControllers()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	QSet<SDL_JoystickID> current_controllers;
 	for(int i=0; i<SDL_NumJoysticks(); i++)
@@ -243,14 +274,32 @@ void ControllerManager::creatingControllerMapping(bool creating_controller_mappi
 void ControllerManager::HandleEvents()
 {
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
+	// how late the poll runs and how often the pad reports, printed in the "[lat]" log lines
+	static uint64_t last_poll_us = 0, last_axis_us = 0;
+	const uint64_t now_us = chiaki_time_now_monotonic_us();
+	if(last_poll_us)
+		LatencyStats::pad_poll.add(now_us - last_poll_us);
+	last_poll_us = now_us;
+
 	SDL_Event event;
-	while(SDL_PollEvent(&event))
+	// SDL_PollEvent pumps the whole event loop and is main-thread only; updating the pads and reading the
+	// queue are safe from this thread
+	SDL_GameControllerUpdate();
+	while(SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT) > 0)
 	{
+		if(event.type == SDL_CONTROLLERAXISMOTION && now_us != last_axis_us)
+		{
+			// longer gaps mean the stick was at rest, not a slow report rate
+			if(now_us - last_axis_us < 50000)
+				LatencyStats::pad_report.add(now_us - last_axis_us);
+			last_axis_us = now_us;
+		}
 		switch(event.type)
 		{
 			case SDL_JOYDEVICEADDED:
 			case SDL_JOYDEVICEREMOVED:
-				UpdateAvailableControllers();
+				// opens devices and notifies the UI, so it stays on the main thread
+				QMetaObject::invokeMethod(this, &ControllerManager::UpdateAvailableControllers, Qt::QueuedConnection);
 				break;
 			case SDL_JOYAXISMOTION:
 			case SDL_JOYBUTTONDOWN:
@@ -270,6 +319,8 @@ void ControllerManager::HandleEvents()
 				break;
 		}
 	}
+	// whole poll including event handling; a large value means the poll itself is slow, not the timer
+	LatencyStats::pad_call.add(chiaki_time_now_monotonic_us() - now_us);
 #endif
 }
 
@@ -340,6 +391,7 @@ QSet<int> ControllerManager::GetAvailableControllers()
 
 Controller *ControllerManager::OpenController(int device_id)
 {
+	QMutexLocker locker(&InputMutex());
 	Controller *controller = open_controllers.value(device_id);
 	if(!controller)
 	{
@@ -352,6 +404,7 @@ Controller *ControllerManager::OpenController(int device_id)
 
 void ControllerManager::ControllerClosed(Controller *controller)
 {
+	QMutexLocker locker(&InputMutex());
 	open_controllers.remove(controller->GetDeviceID());
 }
 
@@ -360,6 +413,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
   is_dualsense_edge(false), has_led(false), firmware_version(0), updating_mapping_button(false), is_handheld(false),
   is_steam_virtual(false), is_steam_virtual_unmasked(false), enable_analog_stick_mapping(false)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	this->id = device_id;
 	this->manager = manager;
 	chiaki_orientation_tracker_init(&this->orientation_tracker);
@@ -406,6 +460,7 @@ Controller::Controller(int device_id, ControllerManager *manager)
 
 Controller::~Controller()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	Q_ASSERT(ref == 0);
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(controller && SDL_WasInit(SDL_INIT_GAMECONTROLLER)!=0)
@@ -689,6 +744,7 @@ void Controller::Ref()
 
 void Controller::Unref()
 {
+	QMutexLocker locker(&ControllerManager::InputMutex());
 	if(--ref == 0)
 	{
 		manager->ControllerClosed(this);
@@ -698,6 +754,7 @@ void Controller::Unref()
 
 bool Controller::IsConnected()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	return controller && SDL_GameControllerGetAttached(controller);
 #else
@@ -716,6 +773,7 @@ int Controller::GetDeviceID()
 
 QString Controller::GetType()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return QString();
@@ -728,6 +786,7 @@ QString Controller::GetType()
 
 bool Controller::IsPS()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return false;
@@ -743,6 +802,7 @@ bool Controller::IsPS()
 
 QString Controller::GetGUIDString()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return QString();
@@ -758,6 +818,7 @@ QString Controller::GetGUIDString()
 
 QString Controller::GetName()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return QString();
@@ -773,6 +834,7 @@ QString Controller::GetName()
 
 QString Controller::GetVIDPIDString()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return QString();
@@ -785,11 +847,13 @@ QString Controller::GetVIDPIDString()
 
 ChiakiControllerState Controller::GetState()
 {
+	QMutexLocker locker(&ControllerManager::InputMutex());
 	return state;
 }
 
 void Controller::SetDualSenseRumble(uint8_t left, uint8_t right)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
@@ -818,6 +882,7 @@ void Controller::SetDualSenseRumble(uint8_t left, uint8_t right)
 
 void Controller::SetRumble(uint8_t left, uint8_t right)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
@@ -830,6 +895,7 @@ void Controller::SetRumble(uint8_t left, uint8_t right)
 
 void Controller::ChangeLEDColor(const uint8_t *led_color)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller || !has_led)
 		return;
@@ -839,6 +905,7 @@ void Controller::ChangeLEDColor(const uint8_t *led_color)
 
 void Controller::ChangePlayerIndex(const uint8_t player_index)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;
@@ -848,6 +915,7 @@ void Controller::ChangePlayerIndex(const uint8_t player_index)
 
 void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, uint8_t type_right, const uint8_t *data_right)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if((!is_dualsense && !is_dualsense_edge) || !controller)
 		return;
@@ -866,6 +934,7 @@ void Controller::SetTriggerEffects(uint8_t type_left, const uint8_t *data_left, 
 
 void Controller::SetDualsenseMic(bool on)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if((!is_dualsense && !is_dualsense_edge) || !controller)
 		return;
@@ -888,6 +957,7 @@ void Controller::SetDualsenseMic(bool on)
 
 void Controller::SetHapticRumble(uint16_t left, uint16_t right)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	if(!controller)
 		return;

@@ -3,6 +3,7 @@
 #endif
 #include <type_traits>
 #include "qmlmainwindow.h"
+#include "latencystats.h"
 #include "qmlbackend.h"
 #include "qmlsvgprovider.h"
 #include "chiaki/log.h"
@@ -3020,6 +3021,7 @@ void QmlMainWindow::presentFrame(ChiakiFfmpegFrame frame, int32_t frames_lost, q
                 dropped_frames_current.fetchAndAddRelaxed(1);
             }
             direct_pending_frame = frame.frame;
+            direct_pending_sample_us = LatencyStats::sample_in_us;
         }
         if (!startup_warmup_frame_active)
             startup_first_real_frame_queued_pending_visibility.storeRelease(1);
@@ -6694,6 +6696,8 @@ void QmlMainWindow::render()
         {
             QMutexLocker locker(&direct_frame_mutex);
             std::swap(incoming, direct_pending_frame);
+            if (incoming)
+                direct_rendering_sample_us = direct_pending_sample_us;
             reset_direct_frame = direct_frame_reset.fetchAndStoreRelaxed(0) != 0;
         }
         if (reset_direct_frame) {
@@ -7058,6 +7062,10 @@ void QmlMainWindow::render()
                                 render_active.loadAcquire() != 0,
                                 submit_render_state.first,
                                 submit_render_state.second);
+            if (present && direct_rendering_sample_us && static_cast<uint64_t>(submit_us) > direct_rendering_sample_us) {
+                LatencyStats::display.add(static_cast<uint64_t>(submit_us) - direct_rendering_sample_us);
+                direct_rendering_sample_us = 0;
+            }
             logPresentSubmitStats(submit_us, present, timer_owned_playback, present_interval_us);
             if (present) {
                 static qint64 last_present_submit_us = 0;

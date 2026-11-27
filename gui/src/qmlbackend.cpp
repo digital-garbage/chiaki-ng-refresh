@@ -2013,6 +2013,7 @@ QVariantList QmlBackend::currentControllerMapping() const
 
 void QmlBackend::updateControllerMappings()
 {
+    QMutexLocker input_lock(&ControllerManager::InputMutex());
     if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
         return;
     QMap<QString,QString> controller_mappings = settings->GetControllerMappings();
@@ -2144,6 +2145,7 @@ void QmlBackend::updateButton(int chiaki_button, QString physical_button, int ne
 
 void QmlBackend::controllerMappingUpdate(Controller *controller)
 {
+    QMutexLocker input_lock(&ControllerManager::InputMutex());
     if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
         return;
     if(controller_mapping_in_progress)
@@ -2225,6 +2227,7 @@ void QmlBackend::controllerMappingSelectButton()
 
 void QmlBackend::controllerMappingReset()
 {
+    QMutexLocker input_lock(&ControllerManager::InputMutex());
     if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid) || SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0 || !settings->GetControllerMappings().keys().contains(controller_mapping_controller_vid_pid))
     {
         controllerMappingQuit();
@@ -2281,6 +2284,7 @@ void QmlBackend::controllerMappingButtonQuit()
 
 void QmlBackend::controllerMappingApply()
 {
+    QMutexLocker input_lock(&ControllerManager::InputMutex());
     QString new_controller_mapping = controller_mapping_controller_type;
     QMapIterator<QString, QStringList> i(controller_mapping_controller_mappings);
     while (i.hasNext()) {

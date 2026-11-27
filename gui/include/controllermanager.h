@@ -6,6 +6,8 @@
 #include <chiaki/controller.h>
 
 #include <QObject>
+#include <QRecursiveMutex>
+#include <QThread>
 #include <QSet>
 #include <QMap>
 #include <QString>
@@ -42,6 +44,8 @@ class ControllerManager : public QObject
 
 		void ControllerClosed(Controller *controller);
 		void CheckMoved();
+		void StopInputThread();
+		QThread *input_thread = nullptr;
 
 	private slots:
 		void UpdateAvailableControllers();
@@ -52,6 +56,9 @@ class ControllerManager : public QObject
 
 	public:
 		static ControllerManager *GetInstance();
+		// Pads are polled on their own thread, so that drawing on the main thread can't delay input.
+		// Hold this to read or change the open controllers, a controller's state, or anything merged with it.
+		static QRecursiveMutex &InputMutex();
 
 		ControllerManager(QObject *parent = nullptr);
 		~ControllerManager();

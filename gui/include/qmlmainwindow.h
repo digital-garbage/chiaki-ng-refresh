@@ -281,6 +281,8 @@ private:
     struct pl_frame_mix frame_mix;
     // Direct rendering retains the displayed mapping and replaces only pending input.
     bool bypass_frame_queue = true;
+    uint64_t direct_pending_sample_us = 0;   // guarded by direct_frame_mutex
+    uint64_t direct_rendering_sample_us = 0; // render thread only
     QMutex direct_frame_mutex;
     AVFrame *direct_pending_frame = nullptr;
     struct pl_frame direct_frame = {};

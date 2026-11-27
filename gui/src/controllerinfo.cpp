@@ -72,6 +72,7 @@ ControllerInfo::~ControllerInfo()
 
 void ControllerInfo::closeAll()
 {
+    QMutexLocker input_lock(&ControllerManager::InputMutex());
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
     for (auto gc : std::as_const(opened))
         SDL_GameControllerClose(gc);
@@ -113,6 +114,7 @@ void ControllerInfo::setActive(bool active)
 
 void ControllerInfo::refresh()
 {
+    QMutexLocker input_lock(&ControllerManager::InputMutex());
     closeAll();
     controller_list.clear();
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
@@ -278,6 +280,7 @@ void ControllerInfo::applyBluetooth()
 
 void ControllerInfo::poll()
 {
+    QMutexLocker input_lock(&ControllerManager::InputMutex());
     QVariantMap s;
 #ifdef CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
     if (current_index >= 0 && current_index < opened.size()) {

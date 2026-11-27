@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
+#include "latencystats.h"
 #include <streamsession.h>
 #include <settings.h>
 #include <controllermanager.h>
@@ -364,6 +365,16 @@ static void SessionSDeckCb(SDeckEvent *event, void *user);
 #endif
 static void FfmpegFrameCb(ChiakiFfmpegDecoder *decoder, void *user);
 
+// stamps every video frame for the latency figures, then decodes it as before
+static bool TimedVideoSampleCb(uint8_t *buf, size_t buf_size, int32_t frames_lost, bool frame_recovered, void *user)
+{
+	const uint64_t in_us = chiaki_time_now_monotonic_us();
+	LatencyStats::sample_in_us = in_us;
+	const bool ok = chiaki_ffmpeg_decoder_video_sample_cb(buf, buf_size, frames_lost, frame_recovered, user);
+	LatencyStats::decode.add(chiaki_time_now_monotonic_us() - in_us);
+	return ok;
+}
+
 StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObject *parent)
 	: QObject(parent),
 		log(this, connect_info.log_level_mask, connect_info.log_file, connect_info.log_sanitize),
@@ -536,6 +547,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	dpad_touch_stop_timer = new QTimer(this);
 	dpad_touch_stop_timer->setSingleShot(true);
 	connect(dpad_touch_stop_timer, &QTimer::timeout, this, [this]{
+		QMutexLocker input_lock(&ControllerManager::InputMutex());
 		if(dpad_touch_id >= 0)
 		{
 			dpad_touch_timer->stop();
@@ -592,7 +604,7 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	else
 	{
 #endif
-		chiaki_session_set_video_sample_cb(&session, chiaki_ffmpeg_decoder_video_sample_cb, ffmpeg_decoder);
+		chiaki_session_set_video_sample_cb(&session, TimedVideoSampleCb, ffmpeg_decoder);
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	}
 #endif
@@ -708,6 +720,11 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 
 StreamSession::~StreamSession()
 {
+	{
+		QMutexLocker input_lock(&ControllerManager::InputMutex());
+		for(auto controller : controllers)
+			disconnect(controller, nullptr, this, nullptr);
+	}
 	mic_active.storeRelaxed(false);
 	StopAudioOutDrainThread();
 	if(audio_out)
@@ -890,6 +907,7 @@ void StreamSession::GoHome()
 
 void StreamSession::ApplyMouseButton(QMouseEvent *event, bool pressed)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	int slot;
 	switch(event->button())
 	{
@@ -932,12 +950,14 @@ void StreamSession::ApplyMouseButton(QMouseEvent *event, bool pressed)
 
 void StreamSession::HandleMousePressEvent(QMouseEvent *event)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	ApplyMouseButton(event, true);
 	SendFeedbackState();
 }
 
 void StreamSession::HandleMouseReleaseEvent(QMouseEvent *event)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	// left button => end of touchpad gesture
 	if(mouse_touch_enabled && event->button() == Qt::LeftButton && mouse_touch_id >= 0)
 	{
@@ -950,6 +970,7 @@ void StreamSession::HandleMouseReleaseEvent(QMouseEvent *event)
 
 void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal height)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	if(MouseRecentersCursor())
 	{
 		// movement is the step from the previous event; the window only recenters the cursor once it has
@@ -984,6 +1005,7 @@ void StreamSession::HandleMouseMoveEvent(QMouseEvent *event, qreal width, qreal 
 
 void StreamSession::ApplyMouseConfig(int mode, int sensitivity, bool invert_y, const int *buttons)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	mouse_mode = mode;
 	mouse_touch_enabled = mouse_mode == 0;
 	mouse_sensitivity = (float)std::clamp(sensitivity, 1, 100);
@@ -1002,6 +1024,7 @@ void StreamSession::ApplyMouseConfig(int mode, int sensitivity, bool invert_y, c
 // Re-reads keyboard mapping and mouse settings, used when the input preset changes during a stream
 void StreamSession::ReloadInput()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	key_map = settings->GetControllerMappingForDecoding();
 	int buttons[5];
 	for(int i = 0; i < 5; i++)
@@ -1013,6 +1036,7 @@ void StreamSession::ReloadInput()
 
 void StreamSession::MouseTick()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	// full deflection / d-pad press thresholds scale with the sensitivity setting (1..100)
 	const float scale = 50.0f / mouse_sensitivity;
 	const float full_px = 40.0f * scale;
@@ -1049,6 +1073,7 @@ void StreamSession::MouseTick()
 
 void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	if(!keyboard_controller_enabled)
 		return;
 	if(key_map.contains(Qt::Key(event->key())) == false)
@@ -1105,6 +1130,7 @@ void StreamSession::HandleKeyboardEvent(QKeyEvent *event)
 
 void StreamSession::HandleTouchEvent(QTouchEvent *event, qreal width, qreal height)
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	//unset touchpad (we will set it if user touches edge of screen)
 	touch_state.buttons &= ~CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
 
@@ -1261,6 +1287,7 @@ void StreamSession::HandleDpadTouchEvent(ChiakiControllerState *state, bool plac
 
 void StreamSession::UpdateGamepads()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 #if CHIAKI_GUI_ENABLE_SDL_GAMECONTROLLER
 	for(auto controller_id : controllers.keys())
 	{
@@ -1293,7 +1320,7 @@ void StreamSession::UpdateGamepads()
 				continue;
 			}
 			CHIAKI_LOGI(log.GetChiakiLog(), "Controller %d opened: \"%s\"", controller_id, controller->GetName().toLocal8Bit().constData());
-			connect(controller, &Controller::StateChanged, this, &StreamSession::SendFeedbackState);
+			connect(controller, &Controller::StateChanged, this, &StreamSession::SendFeedbackState, Qt::DirectConnection);
 			connect(controller, &Controller::MicButtonPush, this, &StreamSession::ToggleMute);
 			controllers[controller_id] = controller;
 			if(controller->IsHandheld())
@@ -1339,6 +1366,7 @@ void StreamSession::WaitHaptics()
 
 void StreamSession::DpadSendFeedbackState()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
 
@@ -1397,6 +1425,7 @@ void StreamSession::DpadSendFeedbackState()
 
 void StreamSession::SendFeedbackState()
 {
+	QMutexLocker input_lock(&ControllerManager::InputMutex());
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
 
@@ -1440,6 +1469,12 @@ void StreamSession::SendFeedbackState()
 	}
 	else
 		dpad_regular_touch_switched = false;
+	// the dpad-as-touchpad mode runs timers that belong to the main thread
+	if(QThread::currentThread() != thread() && dpad_touch_increment && (!dpad_regular || dpad_touch_id >= 0))
+	{
+		QMetaObject::invokeMethod(this, &StreamSession::SendFeedbackState, Qt::QueuedConnection);
+		return;
+	}
 	if(dpad_touch_increment && !dpad_regular && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
 	{
 		HandleDpadTouchEvent(&state);
@@ -2040,6 +2075,54 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 	QByteArray buf((int)(samples_count * audio_out_sample_size), 0);
 
 	// qDebug() << "Audio queue" << (SDL_GetQueuedAudioSize(audio_out) / audio_out_sample_size / samples_count) * 10 << "ms";
+	// once a second: how much audio is waiting to be played, and how long video frames took
+	{
+		size_t ring_fill;
+		{
+			QMutexLocker locker(&audio_out_ring_mutex);
+			ring_fill = audio_out_ring_fill;
+		}
+		const double bytes_per_ms = 48.0 * audio_out_sample_size;
+		const double queued_ms = (SDL_GetQueuedAudioSize(audio_out) + ring_fill) / bytes_per_ms;
+		lat_audio_sum_ms += queued_ms;
+		lat_audio_max_ms = qMax(lat_audio_max_ms, queued_ms);
+		lat_audio_samples++;
+		lat_audio_min_ms = qMin(lat_audio_min_ms, queued_ms);
+		const uint64_t now_us = chiaki_time_now_monotonic_us();
+		if(now_us - lat_last_log_us >= 1000000)
+		{
+			// Sound arrives and plays at the same rate, so whatever a burst left behind stays queued for good.
+			// If the queue never went below one buffer for a whole second, that excess is pure delay: drop it.
+			const double buffer_ms = audio_buffer_size / bytes_per_ms;
+			if(lat_audio_min_ms > buffer_ms && lat_audio_min_ms < 1e9)
+				DropQueuedAudio((size_t)((lat_audio_min_ms - buffer_ms / 2) * bytes_per_ms));
+			lat_audio_min_ms = 1e9;
+
+			double decode_avg, decode_max, display_avg, display_max;
+			uint64_t decode_n, display_n;
+			LatencyStats::decode.take(decode_avg, decode_max, decode_n);
+			LatencyStats::display.take(display_avg, display_max, display_n);
+			double poll_avg, poll_max, report_avg, report_max;
+			uint64_t poll_n, report_n;
+			LatencyStats::pad_poll.take(poll_avg, poll_max, poll_n);
+			LatencyStats::pad_report.take(report_avg, report_max, report_n);
+			double call_avg, call_max;
+			uint64_t call_n;
+			LatencyStats::pad_call.take(call_avg, call_max, call_n);
+			CHIAKI_LOGI(log.GetChiakiLog(), "[lat] pad poll call ms avg=%.2f max=%.1f", call_avg, call_max);
+			CHIAKI_LOGI(log.GetChiakiLog(),
+				"[lat] pad ms poll avg=%.2f max=%.1f | report gap avg=%.1f max=%.1f n=%llu",
+				poll_avg, poll_max, report_avg, report_max, (unsigned long long)report_n);
+			CHIAKI_LOGI(log.GetChiakiLog(),
+				"[lat] audio queued ms avg=%.1f max=%.1f buffer=%.1f | video ms decode avg=%.1f max=%.1f | to screen avg=%.1f max=%.1f frames=%llu",
+				lat_audio_sum_ms / lat_audio_samples, lat_audio_max_ms, audio_buffer_size / bytes_per_ms,
+				decode_avg, decode_max, display_avg, display_max, (unsigned long long)display_n);
+			lat_audio_sum_ms = lat_audio_max_ms = 0;
+			lat_audio_samples = 0;
+			lat_last_log_us = now_us;
+		}
+	}
+
 	// If the SDL queue runs away, drop the stale backlog and resume from the latest frame.
 	if(SDL_GetQueuedAudioSize(audio_out) > 3 * audio_buffer_size)
 	{
@@ -2084,6 +2167,22 @@ void StreamSession::PushAudioFrame(int16_t *og_buf, size_t samples_count)
 #endif
 queue_audio:
 	QueueAudioOutData(buf);
+}
+
+// drops the oldest queued output audio, from the ring first and from SDL if the ring holds less than that
+void StreamSession::DropQueuedAudio(size_t bytes)
+{
+	bytes -= bytes % audio_out_sample_size;
+	CHIAKI_LOGI(log.GetChiakiLog(), "[lat] dropping %.0f ms of audio backlog", bytes / (48.0 * audio_out_sample_size));
+	QMutexLocker locker(&audio_out_ring_mutex);
+	const size_t from_ring = qMin(bytes, audio_out_ring_fill);
+	if(from_ring)
+	{
+		audio_out_ring_read_pos = (audio_out_ring_read_pos + from_ring) % (size_t)audio_out_ring_buf.size();
+		audio_out_ring_fill -= from_ring;
+	}
+	if(from_ring < bytes)
+		SDL_ClearQueuedAudio(audio_out);
 }
 
 void StreamSession::QueueAudioOutData(const QByteArray &audio_data)
